@@ -1,0 +1,70 @@
+# Edit freely. Types: rss, hn_algolia, arxiv, hf_papers.
+# window_hours: how far back to look (default 36). Already-sent items are skipped anyway.
+
+sources:
+  - name: Techmeme
+    type: rss
+    url: https://www.techmeme.com/feed.xml
+    link_from_summary: true   # use the original article link, not the Techmeme permalink
+    # the feed only holds the latest 15 headlines (~6-20h), so the two feeds below fill the gap
+
+  - name: TechCrunch AI
+    type: rss
+    url: https://techcrunch.com/category/artificial-intelligence/feed/
+
+  - name: The Verge AI
+    type: rss
+    url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+
+  - name: Anthropic
+    type: rss
+    # Anthropic has no official feed; this is a community mirror (github.com/Olshansk/rss-feeds)
+    url: https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml
+    window_hours: 60          # dates are day-only, so a wider window avoids misses
+
+  - name: Anthropic Research
+    type: rss
+    url: https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml
+    window_hours: 60
+
+  - name: OpenAI
+    type: rss
+    url: https://openai.com/news/rss.xml
+
+  - name: Google DeepMind
+    type: rss
+    url: https://deepmind.google/blog/rss.xml
+
+  - name: METR
+    type: rss
+    url: https://metr.org/feed.xml
+    window_hours: 60
+
+  - name: Alignment Forum
+    type: rss
+    url: https://www.alignmentforum.org/feed.xml
+    window_hours: 48
+
+  - name: Simon Willison
+    type: rss
+    url: https://simonwillison.net/atom/everything/
+
+  - name: Hugging Face Papers
+    type: hf_papers
+    top_n: 8                  # most-upvoted papers in the window
+    window_hours: 60          # day-only timestamps, and no papers on weekends
+
+  - name: Hacker News
+    type: hn_algolia
+    min_points: 100
+    keywords: [AI, LLM, LLMs, GPT, ChatGPT, OpenAI, Anthropic, Claude, Gemini, DeepMind, Llama,
+               Mistral, DeepSeek, Qwen, Copilot, Cursor, agent, agents, agentic, MCP, model, models,
+               neural, transformer, diffusion, AGI, inference, fine-tuning, RLHF, Nvidia]
+
+  - name: arXiv (safety)
+    type: arxiv
+    window_hours: 72          # arXiv announcement lag
+    categories: [cs.AI, cs.LG, cs.CL]
+    phrases: ["reward hacking", "scheming", "sandbagging", "sandbox escape", "evaluation awareness",
+              "deceptive alignment", "specification gaming", "misalignment"]
+    max_results: 40

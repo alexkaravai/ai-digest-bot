@@ -1,0 +1,56 @@
+name: AI digest
+
+on:
+  schedule:
+    # GitHub cron is UTC. Two runs cover PDT and PST; the script sends only once, at/after 8am LA time.
+    - cron: "17 15 * * *"
+    - cron: "17 16 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the message in the log instead of sending"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Build and send digest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then ARGS="--force"; fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          python -m digest $ARGS
+
+      - name: Commit state
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "ai-digest-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/seen.json
+          if git diff --cached --quiet; then echo "no state change"; exit 0; fi
+          git commit -m "state: $(date -u +%F)"
+          git pull --rebase --quiet
+          git push
