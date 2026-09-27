@@ -13,12 +13,12 @@ Some candidates come from general tech sources and are not about AI. Ignore thos
 
 Selection:
 - Pick one top_story: the single most important item, regardless of category.
-- Pick up to 9 more items. On a slow day pick fewer. Never pad to reach a count.
+- Pick up to 9 more items. On a slow day pick fewer. Never pad to reach a count. Never repeat the top_story in items.
 - Safety: if at least one safety item meets the bar, include the best one even if it would otherwise be cut. If none meets the bar, include none.
 - The same story from multiple sources is one item. List all its candidate_ids and use the most primary URL.
 - If nothing is worth reading, set quiet_day to true and return no items.
 
-Categories:
+Categories (use exactly one of these five values):
 - launches: new models, products, features, pricing from AI companies
 - safety: AI safety, alignment, evals, red-teaming, and AI systems behaving in unintended ways
 - tools: AI design and developer tools (coding agents, UI generation, Figma AI, MCP)

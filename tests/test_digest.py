@@ -54,6 +54,25 @@ def test_split_respects_limit_and_blocks():
     assert sum(m.count("x" * 1500) for m in msgs) == 5
 
 
+def test_split_ignores_markup_length():
+    long_link = '<a href="https://example.com/' + "q" * 3000 + '">Short title</a> · Src'
+    msgs = telegram.split_messages([long_link, long_link, "tail"])
+    assert len(msgs) == 1
+
+
+def test_validate_dedupes_top_story_and_maps_category():
+    dup = item(category="security")
+    other = item(url="https://metr.org/b", category="Security", ids=[1])
+    out = validate({"quiet_day": False, "top_story": item(), "items": [dup, other]}, CANDS)
+    assert [i["url"] for i in out["items"]] == ["https://metr.org/b"]
+    assert out["items"][0]["category"] == "safety"
+
+
+def test_validate_unknown_category_falls_back():
+    out = validate({"quiet_day": False, "top_story": item(category="weird"), "items": []}, CANDS)
+    assert out["top_story"]["category"] == "industry"
+
+
 def test_section_header_glued_to_first_item():
     digest = {"quiet_day": False, "top_story": item(),
               "items": [item(url="https://metr.org/b", category="safety", ids=[1])]}

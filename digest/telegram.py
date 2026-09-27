@@ -1,10 +1,11 @@
+import re
 import time
 from datetime import date
-from html import escape
+from html import escape, unescape
 
 import requests
 
-LIMIT = 4096
+LIMIT = 4000  # Telegram allows 4096 visible characters; keep a margin
 SECTIONS = [
     ("launches", "🚀 Launches"),
     ("safety", "⚠️ Safety & unexpected behavior"),
@@ -52,13 +53,16 @@ def format_fallback(candidates, today: date, failed_sources=()) -> list[str]:
     return [header(today), "<b>Summaries unavailable today</b>"] + (lines or ["No new items found."]) + footer(failed_sources)
 
 
+def visible_len(text: str) -> int:
+    # Telegram's limit applies to the text after HTML entities are parsed, so tags and hrefs don't count
+    return len(unescape(re.sub(r"<[^>]+>", "", text)))
+
+
 def split_messages(blocks, limit: int = LIMIT) -> list[str]:
     messages, current = [], ""
     for block in blocks:
-        if len(block) > limit:
-            block = block[: limit - 1] + "…"  # a single block this long never happens in practice
         candidate = f"{current}\n\n{block}" if current else block
-        if len(candidate) > limit:
+        if current and visible_len(candidate) > limit:
             messages.append(current)
             current = block
         else:

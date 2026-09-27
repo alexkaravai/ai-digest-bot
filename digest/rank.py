@@ -35,8 +35,26 @@ TOOL = {
 }
 
 
+CATEGORY_ALIASES = {
+    "security": "safety", "alignment": "safety", "risk": "safety",
+    "launch": "launches", "product": "launches", "products": "launches", "models": "launches",
+    "tool": "tools", "devtools": "tools", "design": "tools",
+    "paper": "research", "papers": "research", "science": "research",
+    "business": "industry", "policy": "industry", "regulation": "industry", "funding": "industry",
+}
+
+
 class InvalidDigest(Exception):
     pass
+
+
+def normalize_category(raw) -> str:
+    cat = str(raw or "").strip().lower()
+    cat = CATEGORY_ALIASES.get(cat, cat)
+    if cat not in CATEGORIES:
+        print(f"[warn] unknown category {raw!r}, using industry")
+        cat = "industry"
+    return cat
 
 
 def build_user_message(candidates) -> str:
@@ -59,8 +77,7 @@ def validate(result: dict, candidates) -> dict:
         missing = [k for k in ITEM_SCHEMA["required"] if k not in item]
         if missing:
             raise InvalidDigest(f"item missing {missing}")
-        if item["category"] not in CATEGORIES:
-            raise InvalidDigest(f"bad category {item['category']}")
+        item["category"] = normalize_category(item["category"])
         if not item["candidate_ids"] or any(not (0 <= i < n) for i in item["candidate_ids"]):
             raise InvalidDigest(f"bad candidate_ids {item['candidate_ids']}")
         if item["url"] not in urls:
@@ -72,6 +89,18 @@ def validate(result: dict, candidates) -> dict:
     items = [i for i in (check(x) for x in result.get("items", [])[:MAX_ITEMS]) if i]
     if not top and items:
         top, items = items[0], items[1:]
+
+    # the model sometimes repeats the top story (or another item) in the list
+    used_urls = {top["url"]} if top else set()
+    used_ids = set(top["candidate_ids"]) if top else set()
+    unique = []
+    for i in items:
+        if i["url"] in used_urls or used_ids & set(i["candidate_ids"]):
+            continue
+        used_urls.add(i["url"])
+        used_ids.update(i["candidate_ids"])
+        unique.append(i)
+    items = unique
     quiet = bool(result.get("quiet_day")) or not top
     return {"quiet_day": quiet, "top_story": None if quiet else top, "items": [] if quiet else items}
 
