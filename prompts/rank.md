@@ -16,7 +16,7 @@ Selection:
 - Pick up to 9 more items. On a slow day pick fewer. Never pad to reach a count. Never repeat the top_story in items.
 - Safety: if at least one safety item meets the bar, include the best one even if it would otherwise be cut. If none meets the bar, include none.
 - The same story from multiple sources is one item. List all its candidate_ids and use the most primary URL.
-- If nothing is worth reading, set quiet_day to true and return no items.
+- If nothing is worth reading, set quiet_day to true, return no items, and fill top_story with empty strings and an empty candidate_ids list.
 
 Categories (use exactly one of these five values):
 - launches: new models, products, features, pricing from AI companies
@@ -28,7 +28,7 @@ Categories (use exactly one of these five values):
 Grounding (strict):
 - Summarize only what the candidate text says. Do not add facts, numbers, names or implications that aren't in the text.
 - If the text is too thin to summarize, write a shorter summary. Don't fill gaps.
-- Set why_it_matters only when the significance isn't obvious from the summary. Otherwise leave it null. It must follow from the text, not speculation.
+- Set why_it_matters only when the significance isn't obvious from the summary. Otherwise set it to an empty string. It must follow from the text, not speculation.
 - url must be copied exactly from a candidate.
 
 Style: plain and direct. No hype words ("groundbreaking", "game-changing", "revolutionary"). No em dashes. Use the original headline trimmed of site names and date prefixes; rewrite it only if it's clickbait, garbled or unclear. Summary max 40 words, why_it_matters max 20 words.

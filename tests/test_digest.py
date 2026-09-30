@@ -21,11 +21,38 @@ def item(url="https://openai.com/a", category="launches", ids=(0,), why=None):
             "category": category, "summary": "Sum < 5 & > 2", "why_it_matters": why}
 
 
-def test_validate_drops_unknown_url_and_promotes_top():
-    out = validate({"quiet_day": False, "top_story": item(url="https://fake.com"),
+def test_validate_replaces_unknown_url_with_candidate_url():
+    out = validate({"quiet_day": False, "top_story": item(url="https://fake.com"), "items": []}, CANDS)
+    assert out["top_story"]["url"] == "https://openai.com/a"
+
+
+def test_validate_promotes_first_item_when_no_top():
+    out = validate({"quiet_day": False, "top_story": {},
                     "items": [item(url="https://metr.org/b", category="safety", ids=[1])]}, CANDS)
-    assert out["top_story"]["url"] == "https://metr.org/b"
-    assert out["items"] == []
+    assert out["top_story"]["url"] == "https://metr.org/b" and out["items"] == []
+
+
+def test_validate_fills_missing_title_source_url_from_candidate():
+    # regression: Sep 30 re-run dropped 8 of 9 items for missing 'title'
+    bare = {"candidate_ids": [1], "category": "safety", "summary": "S", "why_it_matters": ""}
+    out = validate({"quiet_day": False, "top_story": item(), "items": [bare]}, CANDS)
+    got = out["items"][0]
+    assert (got["title"], got["source"], got["url"]) == ("Eval", "METR", "https://metr.org/b")
+    assert got["why_it_matters"] is None
+
+
+def test_quiet_day_with_placeholder_top_story():
+    placeholder = {"candidate_ids": [], "url": "", "title": "", "source": "", "category": "industry",
+                   "summary": "", "why_it_matters": ""}
+    assert validate({"quiet_day": True, "top_story": placeholder, "items": []}, CANDS)["quiet_day"]
+
+
+def test_tool_schema_is_strict_compatible():
+    from digest.rank import TOOL
+    text = json.dumps(TOOL)
+    assert TOOL["strict"] is True
+    for banned in ('"anyOf"', '"minItems"', '"maxItems"', '"null"', '"minimum"', '"maximum"'):
+        assert banned not in text, banned
 
 
 def test_validate_rejects_when_nothing_valid():

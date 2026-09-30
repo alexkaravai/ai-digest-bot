@@ -6,31 +6,37 @@ import anthropic
 CATEGORIES = ["launches", "safety", "tools", "research", "industry"]
 MAX_ITEMS = 9
 
+# Strict tool use: the API guarantees output matches this schema. Strict mode doesn't support
+# unions, nulls or length limits, so "no why_it_matters" is "" and counts are enforced in validate().
 ITEM_SCHEMA = {
     "type": "object",
     "properties": {
-        "candidate_ids": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+        "candidate_ids": {"type": "array", "items": {"type": "integer"}},
         "url": {"type": "string"},
         "title": {"type": "string"},
         "source": {"type": "string"},
         "category": {"type": "string", "enum": CATEGORIES},
         "summary": {"type": "string"},
-        "why_it_matters": {"type": ["string", "null"]},
+        "why_it_matters": {"type": "string", "description": "Empty string when not needed."},
     },
     "required": ["candidate_ids", "url", "title", "source", "category", "summary", "why_it_matters"],
+    "additionalProperties": False,
 }
+REQUIRED_FROM_MODEL = ["candidate_ids", "category", "summary"]
 
 TOOL = {
     "name": "submit_digest",
     "description": "Submit today's selected digest items.",
+    "strict": True,
     "input_schema": {
         "type": "object",
         "properties": {
             "quiet_day": {"type": "boolean"},
-            "top_story": {"anyOf": [ITEM_SCHEMA, {"type": "null"}]},
-            "items": {"type": "array", "items": ITEM_SCHEMA, "maxItems": MAX_ITEMS},
+            "top_story": {**ITEM_SCHEMA, "description": "Ignored when quiet_day is true."},
+            "items": {"type": "array", "items": ITEM_SCHEMA, "description": f"At most {MAX_ITEMS}."},
         },
         "required": ["quiet_day", "top_story", "items"],
+        "additionalProperties": False,
     },
 }
 
@@ -78,6 +84,8 @@ def _decode(value):
 
 
 def validate(result: dict, candidates) -> dict:
+    if result.get("quiet_day") is True:
+        return {"quiet_day": True, "top_story": None, "items": []}
     urls = {c.url for c in candidates}
     n = len(candidates)
     raw_top = _decode(result.get("top_story"))
@@ -92,18 +100,27 @@ def validate(result: dict, candidates) -> dict:
         if not isinstance(item, dict):
             print(f"[warn] dropped non-object item: {item!r:.80}")
             return None
-        missing = [k for k in ITEM_SCHEMA["required"] if k not in item]
+        missing = [k for k in REQUIRED_FROM_MODEL if not item.get(k)]
         if missing:
             print(f"[warn] dropped item missing {missing}")
             return None
         item["category"] = normalize_category(item["category"])
         ids = item["candidate_ids"]
-        if not isinstance(ids, list) or not ids or any(not isinstance(i, int) or not (0 <= i < n) for i in ids):
+        if not isinstance(ids, list) or any(not isinstance(i, int) or not (0 <= i < n) for i in ids):
             print(f"[warn] dropped item with bad candidate_ids {ids!r}")
             return None
+        # fill gaps from the fetched feed item instead of dropping the story
+        first = candidates[ids[0]]
+        if not item.get("url"):
+            item["url"] = first.url
+        if not item.get("title"):
+            item["title"] = first.title
+        if not item.get("source"):
+            item["source"] = first.source
+        item["why_it_matters"] = item.get("why_it_matters") or None
         if item["url"] not in urls:
-            print(f"[warn] dropped item with unknown url: {item['url']}")
-            return None
+            print(f"[warn] unknown url {item['url']}, using the candidate's")
+            item["url"] = first.url
         return item
 
     top = check(raw_top)
