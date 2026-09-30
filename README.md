@@ -25,7 +25,7 @@ After that it runs on its own every morning.
 
 ## How it behaves
 
-- **Schedule:** two UTC cron entries (15:17 and 16:17) cover both PDT and PST. The script sends only if it's 8am or later in LA and nothing was sent today, so exactly one digest per day. The second run also serves as a retry if the first one failed.
+- **Schedule:** GitHub starts scheduled runs late (4 to 5 hours in the first week), so the workflow fires hourly from 09:17 to 22:17 UTC. The script sends on the first run that lands at or after 8am LA time and nothing was sent yet today; every other run exits in seconds. Later runs double as retries if a send fails.
 - **Always sends something.** Slow day: "Quiet day, nothing worth your time." Claude down: the 10 newest headlines as links. Broken feeds are listed at the bottom. No message means the workflow itself failed, so check the Actions tab (GitHub also emails you on failures).
 - **Dedupe:** every item shown to Claude is marked seen for 14 days, so rejected items don't come back tomorrow.
 - **Links are checked:** any item whose URL isn't one of the fetched candidates is dropped, so a made-up link can't reach you.
@@ -40,7 +40,7 @@ After that it runs on its own every morning.
 | Your interests ("more X, less Y") | `preferences.md`, injected into the prompt each run |
 | Send time / timezone / model | env vars `DIGEST_HOUR`, `DIGEST_TZ`, `CLAUDE_MODEL` in the workflow |
 
-If you change `DIGEST_HOUR`, move the cron times too (they must land at or after that hour in both PST and PDT).
+If you change `DIGEST_HOUR`, check the hourly cron range still covers it in both PST and PDT.
 
 ## Run locally
 

@@ -67,26 +67,49 @@ def build_user_message(candidates) -> str:
     return "Candidates:\n\n" + "\n\n".join(lines)
 
 
+def _decode(value):
+    # the model sometimes returns a nested object or array as a JSON-encoded string
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            raise InvalidDigest(f"undecodable value: {value[:80]!r}")
+    return value
+
+
 def validate(result: dict, candidates) -> dict:
     urls = {c.url for c in candidates}
     n = len(candidates)
+    raw_top = _decode(result.get("top_story"))
+    raw_items = _decode(result.get("items")) or []
+    if not isinstance(raw_items, list):
+        raise InvalidDigest(f"items is {type(raw_items).__name__}, not a list")
 
     def check(item):
+        item = _decode(item)
         if not item:
+            return None
+        if not isinstance(item, dict):
+            print(f"[warn] dropped non-object item: {item!r:.80}")
             return None
         missing = [k for k in ITEM_SCHEMA["required"] if k not in item]
         if missing:
-            raise InvalidDigest(f"item missing {missing}")
+            print(f"[warn] dropped item missing {missing}")
+            return None
         item["category"] = normalize_category(item["category"])
-        if not item["candidate_ids"] or any(not (0 <= i < n) for i in item["candidate_ids"]):
-            raise InvalidDigest(f"bad candidate_ids {item['candidate_ids']}")
+        ids = item["candidate_ids"]
+        if not isinstance(ids, list) or not ids or any(not isinstance(i, int) or not (0 <= i < n) for i in ids):
+            print(f"[warn] dropped item with bad candidate_ids {ids!r}")
+            return None
         if item["url"] not in urls:
             print(f"[warn] dropped item with unknown url: {item['url']}")
             return None
         return item
 
-    top = check(result.get("top_story"))
-    items = [i for i in (check(x) for x in result.get("items", [])[:MAX_ITEMS]) if i]
+    top = check(raw_top)
+    items = [i for i in (check(x) for x in raw_items[:MAX_ITEMS]) if i]
+    if not top and not items and (raw_top or raw_items):
+        raise InvalidDigest("model returned items but none were valid")
     if not top and items:
         top, items = items[0], items[1:]
 

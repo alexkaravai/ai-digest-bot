@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
@@ -27,9 +28,23 @@ def test_validate_drops_unknown_url_and_promotes_top():
     assert out["items"] == []
 
 
-def test_validate_rejects_bad_ids():
+def test_validate_rejects_when_nothing_valid():
     with pytest.raises(InvalidDigest):
         validate({"quiet_day": False, "top_story": item(ids=[99]), "items": []}, CANDS)
+
+
+def test_validate_drops_one_bad_item_keeps_rest():
+    out = validate({"quiet_day": False, "top_story": item(),
+                    "items": [item(url="https://metr.org/b", ids=[99]), {"oops": 1}]}, CANDS)
+    assert out["top_story"]["url"] == "https://openai.com/a" and out["items"] == []
+
+
+def test_validate_decodes_json_string_fields():
+    # regression: Sep 30 run got items as a JSON string and fell back to headlines
+    other = item(url="https://metr.org/b", category="safety", ids=[1])
+    out = validate({"quiet_day": False, "top_story": json.dumps(item()), "items": json.dumps([other])}, CANDS)
+    assert out["top_story"]["url"] == "https://openai.com/a"
+    assert [i["url"] for i in out["items"]] == ["https://metr.org/b"]
 
 
 def test_validate_quiet_when_empty():

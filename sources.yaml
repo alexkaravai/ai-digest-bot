@@ -67,4 +67,4 @@ sources:
     categories: [cs.AI, cs.LG, cs.CL]
     phrases: ["reward hacking", "scheming", "sandbagging", "sandbox escape", "evaluation awareness",
               "deceptive alignment", "specification gaming", "misalignment"]
-    max_results: 40
+    max_results: 15           # 40 flooded the candidate list on busy days

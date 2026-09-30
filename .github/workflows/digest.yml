@@ -2,9 +2,9 @@ name: AI digest
 
 on:
   schedule:
-    # GitHub cron is UTC. Two runs cover PDT and PST; the script sends only once, at/after 8am LA time.
-    - cron: "17 15 * * *"
-    - cron: "17 16 * * *"
+    # GitHub starts scheduled runs late (observed ~4-5h), so fire hourly and let the script
+    # send on the first run that lands at/after 8am LA time. Other runs exit in seconds.
+    - cron: "17 9-22 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
