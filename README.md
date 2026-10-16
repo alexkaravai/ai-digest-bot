@@ -12,8 +12,8 @@ feeds → skip seen → Claude ranks + summarizes (1 call) → Telegram → comm
 2. **Get your chat ID.** Send your new bot any message, then open
    `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser. Copy `result[0].message.chat.id`.
 3. **Get an Anthropic API key** at [console.anthropic.com](https://console.anthropic.com).
-4. **Create a private GitHub repo** and push this folder to it.
-   Private matters: GitHub disables scheduled workflows on inactive public repos, and it keeps your feed choices to yourself.
+4. **Create a GitHub repo** and push this folder to it.
+   Public or private both work. GitHub pauses scheduled workflows on public repos with no activity for 60 days, and the daily `state:` commit keeps it active. Private keeps your feed choices to yourself.
 5. **Add secrets.** Repo → Settings → Secrets and variables → Actions → New repository secret:
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
